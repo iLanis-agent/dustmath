@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dust Math - app</title>
+<link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css">
+<style>
+  :root { --accent: #5a3a7a; }
+  h1 { color: var(--accent); margin-bottom: 0.2em; }
+  .tag { color: var(--accent); font-style: italic; }
+  .card { border: 1px solid #ddd; border-left: 4px solid var(--accent); padding: 1em 1.2em; margin: 1.2em 0; border-radius: 4px; }
+  .big { font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-top: 0.8em; }
+  .err { color: #b00; font-weight: 700; }
+  label { display: block; margin-top: 0.6em; font-size: 0.9em; }
+  input, select { max-width: 12em; }
+  .foot { margin-top: 2.5em; font-size: 0.85em; color: #777; }
+</style>
+</head>
+<body>
+<h1>Dust Math</h1>
+<p class="tag">Hose loss, filter cuts and the circuit vote - labeled norms, honest arithmetic.</p>
+
+<div class="card">
+  <h3>The hose truth</h3>
+  <label for="h-rated">Sticker CFM</label>
+  <input id="h-rated" type="number" step="any" value="150">
+  <label for="h-diam">Hose diameter (in)</label>
+  <select id="h-diam">
+    <option value="1.25">1.25</option>
+    <option value="2.5" selected>2.5</option>
+    <option value="4">4</option>
+  </select>
+  <label for="h-ft">Hose length (ft)</label>
+  <input id="h-ft" type="number" step="any" value="12">
+  <p class="big" id="h-out"></p>
+</div>
+
+<div class="card">
+  <h3>The filter cut</h3>
+  <label for="f-cfm">CFM after the hose</label>
+  <input id="f-cfm" type="number" step="any" value="111">
+  <label for="f-state">Filter state</label>
+  <select id="f-state">
+    <option value="clean">clean</option>
+    <option value="loaded" selected>loaded</option>
+  </select>
+  <label for="f-hepa">HEPA cartridge</label>
+  <select id="f-hepa">
+    <option value="no" selected>no</option>
+    <option value="yes">yes</option>
+  </select>
+  <p class="big" id="f-out"></p>
+</div>
+
+<div class="card">
+  <h3>The circuit vote</h3>
+  <label for="c-vac">Vac draw (A)</label>
+  <input id="c-vac" type="number" step="any" value="11">
+  <label for="c-tool">Tool draw (A)</label>
+  <input id="c-tool" type="number" step="any" value="13">
+  <label for="c-circ">Circuit (A)</label>
+  <input id="c-circ" type="number" step="any" value="15">
+  <p class="big" id="c-out"></p>
+</div>
+
+<p class="foot">Derates are labeled norms - the sticker CFM was measured with no hose at all, and the breaker always gets a vote.</p>
+
+<script src="engine.js"></script>
+<script>
+function g(id){ return document.getElementById(id); }
+function v(id){ var n = parseFloat(g(id).value); return isNaN(n) ? NaN : n; }
+function show(id, s, bad){ var el = g(id); el.textContent = s; el.className = bad ? "err big" : "big"; }
+
+function runHose(){
+  var args = [v("h-rated"), g("h-diam").value, v("h-ft")];
+  var r = DustMath.hosePlan.apply(null, args);
+  if (r.error) return show("h-out", r.error, true);
+  show("h-out", DustMath.renderHose.apply(null, [r].concat(args)), false);
+}
+function runFilter(){
+  var args = [v("f-cfm"), g("f-state").value, g("f-hepa").value === "yes"];
+  var r = DustMath.filterPlan.apply(null, args);
+  if (r.error) return show("f-out", r.error, true);
+  show("f-out", DustMath.renderFilter.apply(null, [r].concat(args)), false);
+}
+function runCircuit(){
+  var args = [v("c-vac"), v("c-tool"), v("c-circ")];
+  var r = DustMath.circuitPlan.apply(null, args);
+  if (r.error) return show("c-out", r.error, true);
+  show("c-out", DustMath.renderCircuit.apply(null, [r].concat(args)), false);
+}
+["h-rated","h-diam","h-ft"].forEach(function(id){ g(id).addEventListener("input", runHose); g(id).addEventListener("change", runHose); });
+["f-cfm","f-state","f-hepa"].forEach(function(id){ g(id).addEventListener("input", runFilter); g(id).addEventListener("change", runFilter); });
+["c-vac","c-tool","c-circ"].forEach(function(id){ g(id).addEventListener("input", runCircuit); g(id).addEventListener("change", runCircuit); });
+runHose(); runFilter(); runCircuit();
+</script>
+</body>
+</html>
